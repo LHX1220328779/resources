@@ -1,0 +1,244 @@
+scp cx@192.168.192.174:/home/cx/lhx/GS_ICP_SLAM/experiments/results/scene.ply ~/ 
+scp -r /home/lhx/GS_ICP_SLAM cx@192.168.192.174:/home/cx/lhx/
+
+XSOCK=/tmp/.X11-unix && XAUTH=~/.docker.xauth && touch $XAUTH && xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge - && xhost +
+docker stop bd6 && docker start bd6 && docker exec -it bd6 /bin/bash
+conda activate gsicpslam && cd /home/project/GS_ICP_SLAM
+docker run -it -v $XSOCK:$XSOCK -v $XAUTH:/root/.Xauthority -e DISPLAY=$DISPLAY -e XAUTHORITY=/root/.Xauthority -e QT_X11_NO_MITSHM=1 -e USER=$USER -e runtime=nvidia -e NVIDIA_DRIVER_CAPABILITIES=all -e NVIDIA_VISIBLE_DEVICES=all -v /home/lhx/project:/home/project --shm-size 8G --net host --gpus all --privileged --name litept 9fa3e2b5204f /bin/bash
+
+docker run -it -v $XSOCK:$XSOCK -v $XAUTH:/root/.Xauthority -e DISPLAY=$DISPLAY -e XAUTHORITY=/root/.Xauthority -e QT_X11_NO_MITSHM=1 -e USER=$USER -e runtime=nvidia -e NVIDIA_DRIVER_CAPABILITIES=all -e NVIDIA_VISIBLE_DEVICES=all -v /home/lhx/project:/home/project --shm-size 8G --net host --gpus all --privileged --name litept 9fa3e2b5204f /bin/bash
+
+#docker run -it -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY -e USER=$USER -e runtime=nvidia -e NVIDIA_DRIVER_CAPABILITIES=all -e NVIDIA_VISIBLE_DEVICES=all -v $XSOCK:$XSOCK -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH -v /home/lhx/project:/home/project --shm-size 8G --net host --gpus all --privileged --name litept 9fa3e2b5204f /bin/bash 
+apt-get update && apt-get install -y x11-apps
+xeyes
+在第一次创建容器时，容器能够挂载到服务器认证消息文件，但是临时的。如果重进/重启容器，则挂载不到，只能
+# 在主机执行（将主机的 .docker.xauth 复制到容器内），所以每次创建完容器后直接手动复制
+#docker cp ~/.docker.xauth gsicpslam2:/root/.docker.xauth
+
+xauth list
+echo $DISPLAY
+export DISPLAY=uuv:13.0
+每关一次终端，都要执行一次上述生成认证文件的步骤。用echo查看当前终端端口号（用于进入容器后手动对应），然后执行
+XSOCK=/tmp/.X11-unix 
+XAUTH=~/.docker.xauth 
+touch $XAUTH 
+xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge - 
+xhost +
+接下来必须要停止容器再开启容器，再进去，进去之后要先查看echo $DISPLAY，必须与当前终端服务器对应，若不对应则手动更改为对应
+如果连续多开几个终端且进入了容器，则显示功能会流转同步，后面新开的终端可以直接连，后面的连上之后。即使把前面的终端关了也照样显示
+偶尔可以
+步骤 4：重置 X11 认证​​
+​​在服务器上删除旧认证文件​​：
+bash
+rm ~/.Xauthority
+​​重新生成认证令牌​​（需在 SSH 连接后自动完成）：
+# 服务器执行（SSH 连接后自动生成）
+xauth list  # 应显示类似 localhost:10.0 的条目
+
+
+
+
+
+
+
+
+(gsicpslam) root@uuv:/home/project# 
+cd home/project
+bash Anaconda3-2024.02-1-Linux-x86_64.sh 
+使conda生效：
+apt update
+apt install nano
+nano ~/.bashrc
+export  PATH=$PATH:/root/anaconda3/bin
+source ~/.bashrc
+
+conda create -n gsicpslam python==3.9
+conda activate gsicpslam
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
+conda install pytorch==2.0.0 torchvision==0.15.0 torchaudio==2.0.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+直接鱼香ros一键安装，安装完之后查看cmake --version,省去了手动安装pcl的步骤。
+先安装ros，否则安装cuda会缺少包
+wget http://fishros.com/install -O fishros && . fishros
+cmake --version
+
+安装cuda tookie工具，但是该方法不保险
+#conda install -c nvidia cuda-nvcc=11.8
+#export CUDA_HOME=$CONDA_PREFIX
+#export PATH=$CUDA_HOME/bin:$PATH
+#export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+#nvcc --version
+1. 安装 CUDA 11.8，​在project目录下下载的有cuda_11.8.0_520.61.05_linux.run，这才是完整的tookie
+chmod +x cuda_11.8.0_520.61.05_linux.run
+./cuda_11.8.0_520.61.05_linux.run
+用方向键选择 Driver 并按 空格 取消 [X]，确保只安装 CUDA Toolkit，其他选项保持默认，选择 Install
+验证安装​  # 检查 nvcc 是否存在 # 应输出 11.8
+ls /usr/local/cuda-11.8/bin/nvcc 
+/usr/local/cuda-11.8/bin/nvcc --version  
+2. 配置环境变量​​
+​​(1) 更新 ~/.bashrc​​
+echo 'export PATH=/usr/local/cuda-11.8/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda-11.8' >> ~/.bashrc
+source ~/.bashrc
+(2) 验证环境变量   # 应输出 /usr/local/cuda-11.8  # 应输出 /usr/local/cuda-11.8/bin/nvcc
+echo $CUDA_HOME     
+which nvcc           
+
+
+
+一直保持在虚拟环境即可！！！！！！
+
+可以不卸载旧版本直接安装新版本 CMake，但需通过指定独立安装路径避免覆盖旧版文件。以下是具体步骤：
+​方法 1：安装到独立目录（推荐）​
+​步骤 1：下载并解压 CMake 新版本
+# 例如安装 CMake 3.22.0 到 /opt/cmake-3.22.0      直接在GSICPSLAM目录下安装就行
+wget https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0.tar.gz
+tar -zxvf cmake-3.22.0.tar.gz
+cd cmake-3.22.0
+​步骤 2：配置并安装到自定义路径
+# 指定安装路径（例如 /opt/cmake-3.22.0）
+./bootstrap --prefix=/opt/cmake-3.22.0
+make -j$(nproc)
+make install
+​步骤 3：设置环境变量
+# 在 ~/.bashrc 或 ~/.zshrc 中添加路径
+echo 'export PATH="/opt/cmake-3.22.0/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+​验证版本
+cmake --version  
+
+## Dependency  
+echo "export CUDA_HOME=/usr/local/cuda && export PATH=/usr/local/cuda-11.8/bin:$PATH && LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
+pip install opencv-contrib-python scipy tqdm plyfile -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install torchmetrics cmake lit
+apt-get install -y ninja-build
+pip3 install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip3.9 install open3d --ignore-installed PyYAML -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip uninstall numpy -y
+pip install numpy==1.23.5
+
+pip install submodules/diff-gaussian-rasterization
+pip install submodules/simple-knn
+
+可能会报错缺少catkin-pkg  AttributeError: module 'rerun' has no attribute 'init'
+pip uninstall rerun rerun-sdk -y
+pip install catkin-pkg rerun-sdk==0.22.1 
+
+cd submodules/fast_gicp/build
+cmake ..
+make -j$(nproc)
+cd ..
+python setup.py install --user
+
+cp -r alexnet-owt-7be5be79.pth /root/.cache/torch/hub/checkpoints
+
+bash tum.sh
+bash tum_unlimit.sh
+export WGPU_BACKEND=gl
+python -W ignore gs_icp_slam.py --rerun_viewer
+
+pip uninstall rerun-sdk
+# 删除用户配置文件（如果有）
+rm -rf ~/.config/rerun && rm -rf ~/.cache/rerun
+# 检查是否已删除
+python -c "import rerun" 2>&1 | grep "No module named rerun"
+# 安装旧版本（以v0.15.0为例）
+pip install rerun-sdk==0.15.0 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 安装v0.20.x最新子版本
+pip install rerun-sdk==0.20.1 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+
+
+
+
+
+
+
+
+
+
+
+
+安装PCL 时间起码半小时
+# 安装依赖,会让选择区域
+apt-get update
+apt-get install -y \
+    git cmake build-essential libboost-all-dev libeigen3-dev \
+    libflann-dev libvtk7-dev libvtk7-qt-dev libqhull-dev \
+    libusb-dev libopenni-dev libopenni2-dev libproj-dev \
+    libgl1-mesa-dev libxt-dev libxmu-dev libxi-dev
+# 下载源码
+cd /home
+git clone --branch pcl-1.13.1 https://github.com/PointCloudLibrary/pcl.git
+cd pcl
+# 配置编译选项
+mkdir build && cd build
+
+    如果有错误则根据错误信息，CMake 在配置 PCL 时无法找到 libusb 库。以下是分步解决方案：
+​1. 安装 libusb-1.0 开发包
+apt-get update
+apt-get install -y libusb-1.0-0-dev
+​2. 验证 libusb 安装
+# 检查头文件路径
+ls /usr/include/libusb-1.0/libusb.h
+# 检查库文件路径
+ls /usr/lib/x86_64-linux-gnu/libusb-1.0.so
+# 检查 pkg-config 配置
+pkg-config --modversion libusb-1.0  # 应输出类似 1.0.23
+​3. 手动指定 libusb 路径给 CMake
+在 CMake 配置命令中显式指定 libusb 的路径：
+bash
+cd /home/project/GS_ICP_SLAM/pcl/build
+rm -rf *  # 清理旧配置
+
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_CUDA=OFF \
+    -DBUILD_GPU=OFF \
+    -DBUILD_TESTS=OFF \
+    -DWITH_OPENNI=ON \
+    -DWITH_OPENNI2=ON \
+    -DWITH_QT=ON \
+    -DWITH_VTK=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+
+# 编译并安装
+make -j$(nproc)
+make install
+# 更新动态库缓存
+ldconfig
+
+echo "export CUDA_HOME=/usr/local/cuda && export PATH=/usr/local/cuda-11.8/bin:$PATH && LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
+pip install opencv-contrib-python scipy tqdm plyfile -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install torchmetrics 
+apt-get install -y ninja-build
+pip3 install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip3.9 install open3d --ignore-installed PyYAML -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+## fast_gicp
+cd /home/project/GS_ICP_SLAM/submodules/fast_gicp
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+cd ..
+python setup.py install --user
+
+## Viewer
+apt install -y libglew-dev libgtk-3-dev libassimp-dev libglfw3-dev libavdevice-dev libxxf86vm-dev
+apt-get install -y libjpeg-dev libtiff5-dev libpng-dev \
+                        libavcodec-dev libavformat-dev libswscale-dev libxvidcore-dev libx264-dev libxine2-dev \
+                        libv4l-dev v4l-utils \
+                        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+                        libgtk2.0-dev mesa-utils libgl1-mesa-dri libgtkgl2.0-dev libgtkglext1-dev \
+                        libatlas-base-dev gfortran libeigen3-dev
+最好将已有的opencv拷贝到/home/project
+cd /home/project/opencv-4.5.5
+mkdir build && cd build
+cmake -D OPENCV_EXTRA_MODULES_PATH=/home/opencv/opencv_contrib-4.5.5/modules ..
+make -j$(nproc)
+
+
+
+apt install -y libglew-dev libgtk-3-dev libassimp-dev libglfw3-dev libavdevice-dev libxxf86vm-dev
